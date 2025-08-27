@@ -1,0 +1,23 @@
+# Core
+transformers>=4.51.0
+accelerate>=0.33.0
+torch>=2.2
+einops
+tqdm
+numpy
+pandas
+datasets>=2.19.0
+regex
+
+# EvalPlus for HumanEval+/MBPP+
+evalplus>=0.3.0
+
+# SWE-bench
+swebench>=2.5.0
+
+# Optional: BigCode evaluation harness for APPS, etc.
+bigcode-eval @ git+https://github.com/bigcode-project/bigcode-evaluation-harness.git
+
+# For CLI UX
+typer>=0.12.0
+rich>=13.7.1
