@@ -2,11 +2,21 @@ from typing import List, Optional
 from dataclasses import dataclass
 import re
 
-DEFAULT_SYSTEM = (
+DEFAULT_SYSTEM_WITH_REASONING = (
     "You are a helpful Python coding assistant. "
     "Think privately, then output ONLY the final code solution.\n"
     "Rules:\n"
     "1) Do NOT include explanations.\n"
+    "2) Return Python code in a single fenced block like:\n"
+    "```python\n<code here>\n```\n"
+    "3) If tests or function signature are given, satisfy them exactly.\n"
+)
+
+DEFAULT_SYSTEM_NO_REASONING = (
+    "You are a helpful Python coding assistant. "
+    "Output ONLY the final code solution.\n"
+    "Rules:\n"
+    "1) Do NOT include explanations or thinking steps.\n"
     "2) Return Python code in a single fenced block like:\n"
     "```python\n<code here>\n```\n"
     "3) If tests or function signature are given, satisfy them exactly.\n"
@@ -23,7 +33,9 @@ class VLLMConfig:
     dtype: str = "bfloat16"
     trust_remote_code: bool = True
     tensor_parallel_size: int = 1  # Set to number of GPUs
-    gpu_memory_utilization: float = 0.9
+    gpu_memory_utilization: float = 0.7
+    enable_reasoning: bool = True
+    max_model_len: int = 8192  # Reduce from default 40960 to fit in memory
 
 class VLLMRunner:
     def __init__(self, cfg: VLLMConfig):
@@ -37,6 +49,7 @@ class VLLMRunner:
             tensor_parallel_size=cfg.tensor_parallel_size,
             gpu_memory_utilization=cfg.gpu_memory_utilization,
             seed=cfg.seed,
+            max_model_len=cfg.max_model_len,
         )
         
         self.sampling_params = SamplingParams(
@@ -50,10 +63,9 @@ class VLLMRunner:
         self.cfg = cfg
         print("VLLM model loaded successfully!")
 
-    @staticmethod
-    def _strip_think_and_extract_code(text: str) -> str:
-        # Keep only the portion after the last </think>
-        if "</think>" in text:
+    def _strip_think_and_extract_code(self, text: str) -> str:
+        # Keep only the portion after the last </think> if reasoning is enabled
+        if self.cfg.enable_reasoning and "</think>" in text:
             text = text.split("</think>")[-1]
         # Extract triple-backtick code block (python or any)
         m = re.search(r"```(?:python)?\s*([\s\S]*?)```", text, re.IGNORECASE)
@@ -63,9 +75,13 @@ class VLLMRunner:
         return text.strip()
 
     def generate_code(self, prompt: str, n: int = 1, system: Optional[str] = None) -> List[str]:
+        from vllm import SamplingParams
+        
         # Format as chat messages
+        if system is None:
+            system = DEFAULT_SYSTEM_WITH_REASONING if self.cfg.enable_reasoning else DEFAULT_SYSTEM_NO_REASONING
         messages = [
-            {"role": "system", "content": system or DEFAULT_SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ]
         

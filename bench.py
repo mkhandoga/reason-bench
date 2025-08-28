@@ -23,6 +23,10 @@ def humaneval(
     dtype: str = typer.Option("bfloat16", help="float16|bfloat16|float32"),
     outdir: str = typer.Option("outputs/humaneval", help="Where to save generations & reports"),
     trust_remote_code: bool = typer.Option(True),
+    debug: bool = typer.Option(False, "--debug", help="Show prompts and model responses"),
+    use_vllm: bool = typer.Option(True, help="Use VLLM for faster inference (fallback to transformers if not available)"),
+    enable_reasoning: bool = typer.Option(True, help="Enable reasoning/thinking mode for Qwen models"),
+    max_model_len: int = typer.Option(8192, help="Maximum sequence length for VLLM (reduce if running out of memory)"),
 ):
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     result = run_humaneval(
@@ -36,6 +40,10 @@ def humaneval(
         dtype=dtype,
         outdir=outdir,
         trust_remote_code=trust_remote_code,
+        debug=debug,
+        use_vllm=use_vllm,
+        enable_reasoning=enable_reasoning,
+        max_model_len=max_model_len,
     )
     print("[bold green]Done.[/bold green] Results:", result)
 
@@ -51,6 +59,10 @@ def mbpp(
     dtype: str = typer.Option("bfloat16", help="float16|bfloat16|float32"),
     outdir: str = typer.Option("outputs/mbpp", help="Where to save generations & reports"),
     trust_remote_code: bool = typer.Option(True),
+    debug: bool = typer.Option(False, "--debug", help="Show prompts and model responses"),
+    use_vllm: bool = typer.Option(True, help="Use VLLM for faster inference (fallback to transformers if not available)"),
+    enable_reasoning: bool = typer.Option(True, help="Enable reasoning/thinking mode for Qwen models"),
+    max_model_len: int = typer.Option(8192, help="Maximum sequence length for VLLM (reduce if running out of memory)"),
 ):
     pathlib.Path(outdir).mkdir(parents=True, exist_ok=True)
     result = run_mbpp(
@@ -64,6 +76,10 @@ def mbpp(
         dtype=dtype,
         outdir=outdir,
         trust_remote_code=trust_remote_code,
+        debug=debug,
+        use_vllm=use_vllm,
+        enable_reasoning=enable_reasoning,
+        max_model_len=max_model_len,
     )
     print("[bold green]Done.[/bold green] Results:", result)
 

@@ -3,11 +3,21 @@ import torch, re, random, os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from dataclasses import dataclass
 
-DEFAULT_SYSTEM = (
+DEFAULT_SYSTEM_WITH_REASONING = (
     "You are a helpful Python coding assistant. "
     "Think privately, then output ONLY the final code solution.\n"
     "Rules:\n"
     "1) Do NOT include explanations.\n"
+    "2) Return Python code in a single fenced block like:\n"
+    "```python\n<code here>\n```\n"
+    "3) If tests or function signature are given, satisfy them exactly.\n"
+)
+
+DEFAULT_SYSTEM_NO_REASONING = (
+    "You are a helpful Python coding assistant. "
+    "Output ONLY the final code solution.\n"
+    "Rules:\n"
+    "1) Do NOT include explanations or thinking steps.\n"
     "2) Return Python code in a single fenced block like:\n"
     "```python\n<code here>\n```\n"
     "3) If tests or function signature are given, satisfy them exactly.\n"
@@ -23,6 +33,7 @@ class QwenGenConfig:
     seed: int = 1234
     dtype: str = "bfloat16"
     trust_remote_code: bool = True
+    enable_reasoning: bool = True
 
 class QwenThinkingRunner:
     def __init__(self, cfg: QwenGenConfig):
@@ -51,10 +62,9 @@ class QwenThinkingRunner:
         
         self.cfg = cfg
 
-    @staticmethod
-    def _strip_think_and_extract_code(text: str) -> str:
-        # Keep only the portion after the last </think>
-        if "</think>" in text:
+    def _strip_think_and_extract_code(self, text: str) -> str:
+        # Keep only the portion after the last </think> if reasoning is enabled
+        if self.cfg.enable_reasoning and "</think>" in text:
             text = text.split("</think>")[-1]
         # Extract triple-backtick code block (python or any)
         import re
@@ -65,8 +75,10 @@ class QwenThinkingRunner:
         return text.strip()
 
     def generate_code(self, prompt: str, n: int = 1, system: Optional[str] = None) -> List[str]:
+        if system is None:
+            system = DEFAULT_SYSTEM_WITH_REASONING if self.cfg.enable_reasoning else DEFAULT_SYSTEM_NO_REASONING
         messages = [
-            {"role": "system", "content": system or DEFAULT_SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ]
         text_inputs = self.tokenizer.apply_chat_template(
