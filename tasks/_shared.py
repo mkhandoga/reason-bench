@@ -15,6 +15,8 @@ def build_runner(args, use_vllm: bool = True) -> Union['QwenThinkingRunner', 'VL
                 seed=args.seed,
                 dtype=args.dtype,
                 trust_remote_code=args.trust_remote_code,
+                enable_reasoning=getattr(args, 'enable_reasoning', True),
+                max_model_len=getattr(args, 'max_model_len', 8192),
             )
             return VLLMRunner(cfg)
         except ImportError:
@@ -32,6 +34,7 @@ def build_runner(args, use_vllm: bool = True) -> Union['QwenThinkingRunner', 'VL
             seed=args.seed,
             dtype=args.dtype,
             trust_remote_code=args.trust_remote_code,
+            enable_reasoning=getattr(args, 'enable_reasoning', True),
         )
         return QwenThinkingRunner(cfg)
 
